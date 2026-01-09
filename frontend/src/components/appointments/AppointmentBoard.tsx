@@ -52,12 +52,24 @@ const AppointmentBoard = ({
   }, [appointments])
 
   const handleStatusChange = async (id: number, status: AppointmentStatus) => {
-    if (!allowStatusUpdates) {
-      return
-    }
+    if (!allowStatusUpdates) return
     try {
       setUpdatingId(id)
       await onStatusChange(id, status)
+    } finally {
+      setUpdatingId((current) => (current === id ? null : current))
+    }
+  }
+
+  const deleteAppointment = async (id: number) => {
+    if (!allowStatusUpdates) return
+    try {
+      setUpdatingId(id)
+      const response = await fetch(`/appointments/${id}`, { method: 'DELETE' })
+      if (!response.ok) throw new Error(`Failed to delete appointment: ${response.statusText}`)
+      await onRefresh()
+    } catch (err) {
+      console.error(err)
     } finally {
       setUpdatingId((current) => (current === id ? null : current))
     }
@@ -120,32 +132,21 @@ const AppointmentBoard = ({
                       const isUpdating = updatingId === appointment.id
                       const canAccept =
                         allowStatusUpdates && !['CHECKED_IN', 'IN_SESSION', 'COMPLETED'].includes(appointment.status)
-                      const canReject = allowStatusUpdates && !['CANCELLED', 'COMPLETED'].includes(appointment.status)
-
-                      const applyStatus = async (status: AppointmentStatus) => {
-                        try {
-                          await handleStatusChange(appointment.id, status)
-                        } catch (cause) {
-                          console.error(cause)
-                        }
-                      }
+                      const canDelete = allowStatusUpdates
 
                       return (
-                        <tr
-                          key={appointment.id}
-                          className={highlight ? 'bg-blue-50/70 text-slate-700' : undefined}
-                        >
+                        <tr key={appointment.id} className={highlight ? 'bg-blue-50/70 text-slate-700' : undefined}>
                           <td className="px-4 py-4 font-semibold text-slate-900">
                             #{String(index + 1).padStart(2, '0')}
                           </td>
                           <td className="px-4 py-4">
                             <p className="font-semibold text-slate-900">{appointment.fullName}</p>
-                            {appointment.contactNumber ? (
+                            {appointment.contactNumber && (
                               <p className="mt-1 text-xs text-slate-500">{appointment.contactNumber}</p>
-                            ) : null}
-                            {appointment.visitReason ? (
+                            )}
+                            {appointment.visitReason && (
                               <p className="mt-2 text-xs text-slate-500">{appointment.visitReason}</p>
-                            ) : null}
+                            )}
                           </td>
                           <td className="px-4 py-4 text-xs font-medium uppercase tracking-wide text-slate-500">
                             {appointment.visitType === 'ONLINE' ? 'Virtual' : 'In-person'}
@@ -166,7 +167,7 @@ const AppointmentBoard = ({
                                   onChange={async (event) => {
                                     const newStatus = event.target.value as AppointmentStatus
                                     if (newStatus !== appointment.status) {
-                                      await applyStatus(newStatus)
+                                      await handleStatusChange(appointment.id, newStatus)
                                     }
                                   }}
                                   disabled={isUpdating}
@@ -183,17 +184,17 @@ const AppointmentBoard = ({
                                     size="sm"
                                     variant="primary"
                                     disabled={!canAccept || isUpdating}
-                                    onClick={() => applyStatus('CHECKED_IN')}
+                                    onClick={() => handleStatusChange(appointment.id, 'CHECKED_IN')}
                                   >
                                     Accept
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="destructive"
-                                    disabled={!canReject || isUpdating}
-                                    onClick={() => applyStatus('CANCELLED')}
+                                    disabled={!canDelete || isUpdating}
+                                    onClick={() => deleteAppointment(appointment.id)}
                                   >
-                                    Reject
+                                    Delete
                                   </Button>
                                 </div>
                               </div>
