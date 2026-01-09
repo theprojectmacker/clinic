@@ -4,7 +4,7 @@ import axios from 'axios'
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? 'https://clinic-jvls.onrender.com',
   timeout: 10000,
-  withCredentials: true, // ✅ Include credentials (cookies or auth headers) if backend requires
+  // withCredentials removed because we don't use cookies/auth headers
 })
 
 // Log base URL for debugging
