@@ -47,10 +47,6 @@ const QueueSummary = ({ summary, loading, onRefresh }: QueueSummaryProps) => {
               <p className="font-semibold">{numberFormatter.format(summary.waitingCount)}</p>
               <p className="mt-1 text-xs uppercase tracking-wide text-blue-700">Awaiting check-in</p>
             </div>
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-emerald-900">
-              <p className="font-semibold">{numberFormatter.format(summary.completedToday)}</p>
-              <p className="mt-1 text-xs uppercase tracking-wide text-emerald-700">Completed today</p>
-            </div>
           </div>
         </CardContent>
       </Card>
