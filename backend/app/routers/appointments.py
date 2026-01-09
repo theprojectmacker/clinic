@@ -18,6 +18,20 @@ router = APIRouter(prefix="/appointments", tags=["appointments"])
 def list_appointments(session: Session = Depends(get_session)) -> list[AppointmentRead]:
     return list(crud.list_appointments(session))
 
+@router.delete("/{appointment_id}", status_code=status.HTTP_200_OK)
+def delete_appointment(
+    appointment_id: int,
+    _admin_token: str = Depends(require_admin),  # optional: only admins can delete
+    session: Session = Depends(get_session),
+) -> dict[str, str]:
+    appointment = session.get(crud.models.Appointment, appointment_id)
+    if appointment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found.")
+    
+    session.delete(appointment)
+    session.commit()
+    return {"status": "deleted"}
+
 
 @router.post("", response_model=AppointmentRead, status_code=status.HTTP_201_CREATED)
 def create_appointment(
