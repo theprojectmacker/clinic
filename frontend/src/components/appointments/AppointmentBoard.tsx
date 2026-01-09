@@ -5,6 +5,7 @@ import { Select } from '../ui/select'
 import StatusBadge from './StatusBadge'
 import type { Appointment, AppointmentStatus } from '../../types/appointment'
 import { appointmentStatuses } from '../../types/appointment'
+import api from '../../lib/api' // your axios instance
 
 interface AppointmentBoardProps {
   appointments: Appointment[]
@@ -14,6 +15,7 @@ interface AppointmentBoardProps {
   onRefresh: () => Promise<void> | void
   onStatusChange: (appointmentId: number, status: AppointmentStatus) => Promise<void>
   allowStatusUpdates?: boolean
+  adminToken?: string // <-- add this prop to provide the admin token
 }
 
 const statusOptions = appointmentStatuses
@@ -33,6 +35,7 @@ const AppointmentBoard = ({
   onRefresh,
   onStatusChange,
   allowStatusUpdates = false,
+  adminToken = '',
 }: AppointmentBoardProps) => {
   const [updatingId, setUpdatingId] = useState<number | null>(null)
 
@@ -40,9 +43,7 @@ const AppointmentBoard = ({
     const byDate = new Map<string, Appointment[]>()
     appointments.forEach((entry) => {
       const key = new Date(entry.scheduledFor).toDateString()
-      if (!byDate.has(key)) {
-        byDate.set(key, [])
-      }
+      if (!byDate.has(key)) byDate.set(key, [])
       byDate.get(key)?.push(entry)
     })
     return Array.from(byDate.entries()).map(([key, list]) => ({
@@ -51,6 +52,7 @@ const AppointmentBoard = ({
     }))
   }, [appointments])
 
+  // Handle status updates
   const handleStatusChange = async (id: number, status: AppointmentStatus) => {
     if (!allowStatusUpdates) return
     try {
@@ -61,15 +63,23 @@ const AppointmentBoard = ({
     }
   }
 
+  // Handle deletion using Axios and admin token
   const deleteAppointment = async (id: number) => {
     if (!allowStatusUpdates) return
+    if (!adminToken) {
+      console.error('Admin token is required to delete appointments')
+      return
+    }
     try {
       setUpdatingId(id)
-      const response = await fetch(`/appointments/${id}`, { method: 'DELETE' })
-      if (!response.ok) throw new Error(`Failed to delete appointment: ${response.statusText}`)
+      await api.delete(`/appointments/${id}`, {
+        headers: {
+          Authorization: `Bearer ${adminToken}`,
+        },
+      })
       await onRefresh()
     } catch (err) {
-      console.error(err)
+      console.error('Failed to delete appointment:', err)
     } finally {
       setUpdatingId((current) => (current === id ? null : current))
     }
