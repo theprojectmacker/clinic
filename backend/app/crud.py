@@ -1,22 +1,26 @@
 from collections.abc import Iterable
-from collections.abc import Iterable
 from datetime import datetime, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .enums import AppointmentStatus
-from .models import Appointment
-from .schemas import AppointmentCreate
+from app.models import Appointment
+from app.enums import AppointmentStatus
+from app.schemas import AppointmentCreate
 
 
 def list_appointments(session: Session) -> Iterable[Appointment]:
+    """
+    Return all appointments, ordered by scheduled time and ID.
+    """
     statement = select(Appointment).order_by(Appointment.scheduled_for.asc(), Appointment.id.asc())
     return session.scalars(statement).all()
 
 
-
 def search_appointments_by_name(session: Session, name: str) -> Iterable[Appointment]:
+    """
+    Search appointments by patient full name (case-insensitive).
+    """
     like_pattern = f"%{name.strip().lower()}%"
     statement = (
         select(Appointment)
@@ -27,6 +31,9 @@ def search_appointments_by_name(session: Session, name: str) -> Iterable[Appoint
 
 
 def create_appointment(session: Session, data: AppointmentCreate) -> Appointment:
+    """
+    Create a new appointment with status 'SCHEDULED'.
+    """
     appointment = Appointment(
         full_name=data.full_name,
         contact_number=data.contact_number,
@@ -42,6 +49,9 @@ def create_appointment(session: Session, data: AppointmentCreate) -> Appointment
 
 
 def update_appointment_status(session: Session, appointment_id: int, status: AppointmentStatus) -> Appointment | None:
+    """
+    Update the status of an appointment. Returns None if not found.
+    """
     appointment = session.get(Appointment, appointment_id)
     if appointment is None:
         return None
@@ -51,3 +61,15 @@ def update_appointment_status(session: Session, appointment_id: int, status: App
     session.commit()
     session.refresh(appointment)
     return appointment
+
+
+def delete_appointment(session: Session, appointment_id: int) -> bool:
+    """
+    Delete an appointment by ID. Returns True if deleted, False if not found.
+    """
+    appointment = session.get(Appointment, appointment_id)
+    if not appointment:
+        return False
+    session.delete(appointment)
+    session.commit()
+    return True
