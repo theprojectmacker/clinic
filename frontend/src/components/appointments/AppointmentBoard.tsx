@@ -5,7 +5,7 @@ import { Select } from '../ui/select'
 import StatusBadge from './StatusBadge'
 import type { Appointment, AppointmentStatus } from '../../types/appointment'
 import { appointmentStatuses } from '../../types/appointment'
-import api from '../../services/api' // your axios instance
+import api from '../../services/api'
 
 interface AppointmentBoardProps {
   appointments: Appointment[]
@@ -57,6 +57,8 @@ const AppointmentBoard = ({
     try {
       setUpdatingId(id)
       await onStatusChange(id, status)
+    } catch (err) {
+      console.error(`Failed to update status for appointment ${id}:`, err)
     } finally {
       setUpdatingId((current) => (current === id ? null : current))
     }
@@ -66,8 +68,12 @@ const AppointmentBoard = ({
     if (!allowStatusUpdates) return
     try {
       setUpdatingId(id)
-      await api.delete(`/appointments/${id}`) // no token needed
-      await onRefresh()
+      await api.delete(`/appointments/${id}`) // DELETE request
+      try {
+        await onRefresh()
+      } catch (refreshErr) {
+        console.error('Failed to refresh after deletion:', refreshErr)
+      }
     } catch (err) {
       console.error('Failed to delete appointment:', err)
     } finally {
