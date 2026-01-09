@@ -44,4 +44,3 @@ print("ADMIN_CONSOLE_PASSWORD:", os.getenv("ADMIN_CONSOLE_PASSWORD"))
 # Include routers
 app.include_router(admin.router)
 app.include_router(appointments.router)
-console.log('API Base URL:', import.meta.env.VITE_API_BASE_URL);
