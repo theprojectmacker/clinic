@@ -5,7 +5,7 @@ import { Select } from '../ui/select'
 import StatusBadge from './StatusBadge'
 import type { Appointment, AppointmentStatus } from '../../types/appointment'
 import { appointmentStatuses } from '../../types/appointment'
-import api from '../../lib/api' // your axios instance
+import api from '../../services/api' // your axios instance
 
 interface AppointmentBoardProps {
   appointments: Appointment[]
