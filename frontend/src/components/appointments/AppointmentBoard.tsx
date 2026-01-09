@@ -15,7 +15,6 @@ interface AppointmentBoardProps {
   onRefresh: () => Promise<void> | void
   onStatusChange: (appointmentId: number, status: AppointmentStatus) => Promise<void>
   allowStatusUpdates?: boolean
-  adminToken?: string // <-- add this prop to provide the admin token
 }
 
 const statusOptions = appointmentStatuses
@@ -35,7 +34,6 @@ const AppointmentBoard = ({
   onRefresh,
   onStatusChange,
   allowStatusUpdates = false,
-  adminToken = '',
 }: AppointmentBoardProps) => {
   const [updatingId, setUpdatingId] = useState<number | null>(null)
 
@@ -48,11 +46,12 @@ const AppointmentBoard = ({
     })
     return Array.from(byDate.entries()).map(([key, list]) => ({
       dateLabel: key,
-      items: list.sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime()),
+      items: list.sort(
+        (a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime()
+      ),
     }))
   }, [appointments])
 
-  // Handle status updates
   const handleStatusChange = async (id: number, status: AppointmentStatus) => {
     if (!allowStatusUpdates) return
     try {
@@ -63,20 +62,11 @@ const AppointmentBoard = ({
     }
   }
 
-  // Handle deletion using Axios and admin token
   const deleteAppointment = async (id: number) => {
     if (!allowStatusUpdates) return
-    if (!adminToken) {
-      console.error('Admin token is required to delete appointments')
-      return
-    }
     try {
       setUpdatingId(id)
-      await api.delete(`/appointments/${id}`, {
-        headers: {
-          Authorization: `Bearer ${adminToken}`,
-        },
-      })
+      await api.delete(`/appointments/${id}`) // no token needed
       await onRefresh()
     } catch (err) {
       console.error('Failed to delete appointment:', err)
@@ -119,7 +109,9 @@ const AppointmentBoard = ({
           grouped.map((group) => (
             <div key={group.dateLabel} className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{group.dateLabel}</h3>
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                  {group.dateLabel}
+                </h3>
                 <p className="text-xs text-slate-400">{group.items.length} appointments</p>
               </div>
               <div className="overflow-hidden rounded-2xl border border-slate-200">
@@ -141,7 +133,8 @@ const AppointmentBoard = ({
                       const highlight = appointment.id === highlightedAppointmentId
                       const isUpdating = updatingId === appointment.id
                       const canAccept =
-                        allowStatusUpdates && !['CHECKED_IN', 'IN_SESSION', 'COMPLETED'].includes(appointment.status)
+                        allowStatusUpdates &&
+                        !['CHECKED_IN', 'IN_SESSION', 'COMPLETED'].includes(appointment.status)
                       const canDelete = allowStatusUpdates
 
                       return (
