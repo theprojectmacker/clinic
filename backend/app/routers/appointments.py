@@ -1,20 +1,18 @@
-# app/routers/appointments.py
-
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from .. import crud
-from ..database import get_session
-from ..enums import AppointmentStatus
-from ..schemas import AppointmentCreate, AppointmentRead, AppointmentStatusUpdate
+from app import crud
+from app.database import get_session
+from app.enums import AppointmentStatus
+from app.schemas import AppointmentCreate, AppointmentRead, AppointmentStatusUpdate
 
 router = APIRouter(prefix="/appointments", tags=["appointments"])
 
 
 @router.get("", response_model=list[AppointmentRead])
 def list_appointments(session: Session = Depends(get_session)) -> list[AppointmentRead]:
-    return list(crud.list_appointments(session))
+    return [AppointmentRead.model_validate(a) for a in crud.list_appointments(session)]
 
 
 @router.delete("/{appointment_id}", status_code=status.HTTP_200_OK)
@@ -23,12 +21,8 @@ def delete_appointment(
     session: Session = Depends(get_session),
 ) -> dict[str, str]:
     """Delete an appointment (no admin required)."""
-    appointment = session.get(crud.models.Appointment, appointment_id)
-    if appointment is None:
+    if not crud.delete_appointment(session, appointment_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found.")
-
-    session.delete(appointment)
-    session.commit()
     return {"status": "deleted"}
 
 
@@ -46,7 +40,6 @@ def create_appointment(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Selected schedule is in the past.")
 
     normalized_payload = payload.model_copy(update={"scheduled_for": normalized_schedule})
-
     created = crud.create_appointment(session, normalized_payload)
     return AppointmentRead.model_validate(created)
 
